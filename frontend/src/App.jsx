@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { Component, useState } from 'react'
 import { Header, Sidebar } from './components/Shell.jsx'
 import HardwarePanel from './components/HardwarePanel.jsx'
 import TelemetryPanel from './components/TelemetryPanel.jsx'
@@ -11,6 +11,41 @@ import HistoryView from './components/HistoryView.jsx'
 import QdrantView from './components/QdrantView.jsx'
 import SettingsView from './components/SettingsView.jsx'
 import { useHardware, useSession, useRag, postAnalyze } from './lib/api.js'
+
+class ViewErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("AgenticAim View Error:", error, errorInfo)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 text-center text-slate-300 min-h-[300px]">
+          <div className="rounded-lg border border-red-500/50 bg-red-950/40 p-6 max-w-md shadow-2xl backdrop-blur">
+            <h2 className="text-base font-bold text-red-400 mb-2 font-head tracking-wide">View Initialization Alert</h2>
+            <p className="text-xs text-slate-300 mb-4">{this.state.error?.message || 'Component failed to load.'}</p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false })
+                if (this.props.onReset) this.props.onReset()
+              }}
+              className="rounded bg-rose px-4 py-1.5 text-xs font-bold text-white hover:bg-red-600 transition"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function parseSensFromText(text) {
   const updates = {}
@@ -100,48 +135,50 @@ export default function App() {
       <div className="flex min-h-0 flex-1">
         <Sidebar active={nav} onChange={setNav} />
         <main className="min-w-0 flex-1 overflow-auto p-2.5 sm:p-3.5 flex flex-col">
-          {nav === 'dashboard' && (
-            <div className="dashboard-grid mx-auto grid w-full flex-1 max-w-[1600px] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:ml-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-[minmax(136px,0.95fr)_minmax(168px,1.2fr)_minmax(146px,1.05fr)] lg:gap-2.5">
-              <div className="min-h-0 min-w-0 lg:col-start-1 lg:row-start-1"><HardwarePanel hw={hw} /></div>
-              <div className="min-h-0 min-w-0 lg:col-start-2 lg:row-start-1"><TelemetryPanel hw={hw} /></div>
-              <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
-                <CoachPanel session={session} onCoachAdvise={handleCoachAdvise} />
+          <ViewErrorBoundary onReset={() => setNav('dashboard')}>
+            {nav === 'dashboard' && (
+              <div className="dashboard-grid mx-auto grid w-full flex-1 max-w-[1600px] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:ml-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-[minmax(136px,0.95fr)_minmax(168px,1.2fr)_minmax(146px,1.05fr)] lg:gap-2.5">
+                <div className="min-h-0 min-w-0 lg:col-start-1 lg:row-start-1"><HardwarePanel hw={hw} /></div>
+                <div className="min-h-0 min-w-0 lg:col-start-2 lg:row-start-1"><TelemetryPanel hw={hw} /></div>
+                <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
+                  <CoachPanel session={session} onCoachAdvise={handleCoachAdvise} />
+                </div>
+
+                <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-2">
+                  <MatchPanel session={session} onAnalyze={analyze} analyzing={analyzing} />
+                </div>
+
+                <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-3">
+                  <CalibrationPanel session={session} coachOverrides={coachOverrides} />
+                </div>
+                <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-start-3"><RagPanel rag={rag} /></div>
               </div>
+            )}
 
-              <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-2">
-                <MatchPanel session={session} onAnalyze={analyze} analyzing={analyzing} />
+            {nav === 'voice' && (
+              <div className="mx-auto flex-1 w-full max-w-[1600px]">
+                <VoiceCoachView session={session} onCoachAdvise={handleCoachAdvise} />
               </div>
+            )}
 
-              <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-3">
-                <CalibrationPanel session={session} coachOverrides={coachOverrides} />
+            {nav === 'history' && (
+              <div className="mx-auto flex-1 w-full max-w-[1600px]">
+                <HistoryView />
               </div>
-              <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-start-3"><RagPanel rag={rag} /></div>
-            </div>
-          )}
+            )}
 
-          {nav === 'voice' && (
-            <div className="mx-auto flex-1 w-full max-w-[1600px]">
-              <VoiceCoachView session={session} onCoachAdvise={handleCoachAdvise} />
-            </div>
-          )}
+            {nav === 'qdrant' && (
+              <div className="mx-auto flex-1 w-full max-w-[1600px]">
+                <QdrantView rag={rag} />
+              </div>
+            )}
 
-          {nav === 'history' && (
-            <div className="mx-auto flex-1 w-full max-w-[1600px]">
-              <HistoryView />
-            </div>
-          )}
-
-          {nav === 'qdrant' && (
-            <div className="mx-auto flex-1 w-full max-w-[1600px]">
-              <QdrantView rag={rag} />
-            </div>
-          )}
-
-          {nav === 'settings' && (
-            <div className="mx-auto flex-1 w-full max-w-[1600px]">
-              <SettingsView hw={hw} />
-            </div>
-          )}
+            {nav === 'settings' && (
+              <div className="mx-auto flex-1 w-full max-w-[1600px]">
+                <SettingsView hw={hw} />
+              </div>
+            )}
+          </ViewErrorBoundary>
 
           {analysisError && (
             <p role="alert" className="mt-2 text-right text-[9px] text-red-300">

@@ -59,6 +59,11 @@ def main():
         "desktop_app.py",
     ]
 
+    icon_path = os.path.join(BASE_DIR, "app_icon.ico")
+    if os.path.exists(icon_path):
+        print(f"[*] Found custom app icon: {icon_path}")
+        pyinstaller_args.insert(5, f"--icon={icon_path}")
+
     print("[*] Running PyInstaller command:")
     print("    " + " ".join(pyinstaller_args[:5]) + " ...")
     subprocess.run(pyinstaller_args, cwd=BASE_DIR, check=True)

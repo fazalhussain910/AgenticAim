@@ -16,7 +16,19 @@ export function Header({ hw, online }) {
   return (
     <header className="flex h-[42px] shrink-0 items-center justify-between border-b border-line bg-bg2/80 px-3 backdrop-blur sm:px-5">
       <div className="flex items-center gap-2">
-        <Gamepad2 className="h-6 w-6 text-rose" strokeWidth={1.8} />
+        <div className="relative flex h-7 w-7 items-center justify-center">
+          <img
+            src="/app_logo.png"
+            alt="AgenticAim Logo"
+            className="h-7 w-7 rounded object-contain drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon')
+              if (fallback) fallback.style.display = 'block'
+            }}
+          />
+          <Gamepad2 className="fallback-icon h-6 w-6 text-rose" strokeWidth={1.8} style={{ display: 'none' }} />
+        </div>
         <div className="leading-tight">
           <div className="font-head text-[17px] font-bold tracking-wide text-white">AgenticAim</div>
           <div className="text-[8px] text-slate-400">AMD Developer Hackathon III Project</div>

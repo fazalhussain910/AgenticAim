@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': backend,
         '/analyze': backend,
+        '/history': backend,
       },
     },
   }
