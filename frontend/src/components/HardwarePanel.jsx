@@ -63,6 +63,9 @@ export default function HardwarePanel({ hw }) {
   const safe = hw.is_safe_to_play
   const gb = (hw.ram_used_mb / 1024).toFixed(1)
   const totalGb = Math.round(hw.ram_total_mb / 1024)
+  const cpuModel = hw.cpu_name ? hw.cpu_name.replace('w/ Radeon Vega Mobile Gfx', '').trim() : 'AMD Ryzen 5 PRO 3500U'
+  const gpuModel = hw.gpu_name || 'AMD Radeon(TM) Vega 8 Graphics'
+
   return (
     <Panel
       title="Live Hardware Safety Advisor"
@@ -77,6 +80,22 @@ export default function HardwarePanel({ hw }) {
       >
         {hw.safety_badge}
       </div>
+
+      <div className="mt-2 space-y-0.5 rounded border border-cyan-500/25 bg-cyan-950/25 px-2 py-1 font-mono text-[8px]">
+        <div className="flex items-center justify-between text-slate-300">
+          <span className="text-slate-400">CPU:</span>
+          <span className="font-semibold text-cyan-300 truncate max-w-[160px]" title={cpuModel}>
+            {cpuModel}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-slate-300">
+          <span className="text-slate-400">GPU:</span>
+          <span className="font-semibold text-rose-300 truncate max-w-[160px]" title={gpuModel}>
+            {gpuModel}
+          </span>
+        </div>
+      </div>
+
       <div className="mt-2 flex items-center gap-3">
         <Ring pct={hw.cpu_pct} />
         <div className="min-w-0 flex-1 space-y-1.5">

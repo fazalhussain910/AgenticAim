@@ -515,6 +515,88 @@ def get_hardware_spec() -> dict:
     }
 
 
+def get_native_windows_hardware() -> dict:
+    """
+    Query exact Windows physical hardware specs directly from registry and OS kernel.
+    Universally detects any machine's real CPU (Intel / AMD), GPU (NVIDIA / AMD / Intel),
+    installed RAM, and monitor refresh rate.
+    """
+    cpu = "Unknown Processor"
+    gpu = "DirectX Graphics Adapter"
+    ram_installed = 8.0
+    display_str = "1920 × 1080 @ 60Hz"
+
+    # 1. Universal CPU Detection (reads Windows active processor string)
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+        val, _ = winreg.QueryValueEx(key, "ProcessorNameString")
+        if val and str(val).strip():
+            cpu = str(val).strip()
+    except Exception:
+        pass
+
+    # 2. Universal GPU Detection (enumerates display class adapters for dedicated/discrete GPU)
+    try:
+        import winreg
+        found_gpus = []
+        for idx in range(6):
+            try:
+                sub_path = rf"SYSTEM\CurrentControlSet\Control\Class\{{4d36e968-e325-11ce-bfc1-08002be10318}}\{idx:04d}"
+                k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, sub_path)
+                desc, _ = winreg.QueryValueEx(k, "DriverDesc")
+                if desc and str(desc).strip():
+                    name = str(desc).strip()
+                    # Skip basic software or virtual mirrors if real GPU exists
+                    if "Virtual" not in name and "Remote" not in name:
+                        found_gpus.append(name)
+            except Exception:
+                pass
+
+        if found_gpus:
+            # Prefer dedicated GPUs (NVIDIA, AMD Radeon, Intel Arc)
+            dedicated = [g for g in found_gpus if any(x in g.upper() for x in ("RTX", "GTX", "GEFORCE", "RADEON", "ARC", "NVIDIA"))]
+            gpu = dedicated[0] if dedicated else found_gpus[0]
+    except Exception:
+        pass
+
+    # 3. Universal Physical Installed RAM Detection (BIOS/SMBIOS reported total)
+    try:
+        import ctypes
+        mem_kb = ctypes.c_ulonglong()
+        if ctypes.windll.kernel32.GetPhysicallyInstalledSystemMemory(ctypes.byref(mem_kb)):
+            ram_installed = round(mem_kb.value / (1024**2), 1)
+        else:
+            ram_installed = round(psutil.virtual_memory().total / (1024**3), 1)
+    except Exception:
+        ram_installed = round(psutil.virtual_memory().total / (1024**3), 1)
+
+    # 4. Universal Display Resolution & Refresh Rate
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        gdi32 = ctypes.windll.gdi32
+        hdc = user32.GetDC(0)
+        w = gdi32.GetDeviceCaps(hdc, 8)    # HORZRES
+        h = gdi32.GetDeviceCaps(hdc, 10)   # VERTRES
+        hz = gdi32.GetDeviceCaps(hdc, 116) # VREFRESH
+        user32.ReleaseDC(0, hdc)
+        display_str = f"{w} × {h} @ {hz}Hz"
+    except Exception:
+        pass
+
+    ram_usable = round(psutil.virtual_memory().total / (1024**3), 1)
+
+    return {
+        "cpu": cpu,
+        "gpu": gpu,
+        "ram_installed_gb": ram_installed,
+        "ram_usable_gb": ram_usable,
+        "cores": psutil.cpu_count(logical=True) or 4,
+        "display": display_str,
+    }
+
+
 def get_live_system_impact() -> dict:
     """
     Fetch current local resource utilization (CPU %, RAM %, GPU %).

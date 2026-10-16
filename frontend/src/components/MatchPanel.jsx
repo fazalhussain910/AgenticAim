@@ -29,12 +29,16 @@ function LevelMeter() {
 
 function FlickScene() {
   return (
-    <div className="relative h-full min-h-[92px] w-full overflow-hidden rounded border border-line bg-black">
+    <div className="group relative h-full min-h-[96px] w-full overflow-hidden rounded border border-line bg-black shadow-inner">
       <img
         src="/crosshair_capture.png"
         alt="Crosshair Capture & Flick Path"
-        className="h-full w-full object-cover"
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+      <span className="absolute bottom-1 right-1.5 rounded border border-cyan-500/30 bg-black/75 px-1 py-0.5 font-mono text-[7.5px] font-medium text-cyan-300 backdrop-blur-sm">
+        BURST TELEMETRY
+      </span>
     </div>
   )
 }

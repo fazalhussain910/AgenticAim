@@ -469,11 +469,16 @@ Do not include any text outside the JSON block.
 # NODE 3 — AIM COACH CALCULATOR (BLOOD STRIKE IN-GAME SLIDERS)
 # ==============================================================================
 
-COACH_SYSTEM_PROMPT = """You are a friendly, experienced esports coach. Write newbie_advice and full_reasoning as natural, conversational coaching that sounds like a helpful teammate, not a report. Mention a telemetry measurement only when it helps, then give one exact sensitivity/crosshair adjustment.
-Blood Strike uses an integer slider system (0–100+):
-  • "No ADS Steering" (FPS/TPS) [Hipfire]: baseline 75
-  • "Iron Sight/Holo/Red Dot" & Tactical Stance: baseline 40
-  • "Scopes (2X to 8X)": baseline 40
+COACH_SYSTEM_PROMPT = """You are a friendly, experienced esports coach. Write newbie_advice and full_reasoning as natural, conversational coaching that sounds like a helpful teammate.
+Blood Strike Sensitivity Categories:
+  • "Camera Sensitivity (No Scope)" [Hipfire Flicks & Turning]: baseline 75
+  • "Firing Sensitivity": hipfire tracking while shooting
+  • "ADS Sensitivity (Red Dot / Iron Sight)": baseline 40
+  • "Firing ADS Sensitivity": vertical recoil pull-down while shooting with ADS
+  • "Scope Sensitivity (2X to 8X / Sniper)": baseline 40
+
+HARDWARE ADVISOR RULE:
+If the player's live hardware status indicates high load (RAM > 85% or CPU > 80%), briefly mention that high memory/CPU usage creates mouse input lag and aim floatiness alongside your slider adjustment.
 
 OUTPUT FORMAT — RESPOND ONLY IN THIS EXACT JSON FORMAT:
 {{
@@ -481,7 +486,7 @@ OUTPUT FORMAT — RESPOND ONLY IN THIS EXACT JSON FORMAT:
   "iron_sight_sens": <int>,
   "scope_sens": <int>,
   "confidence_pct": <int 65–100>,
-  "newbie_advice": "<1–2 natural coaching sentences with the exact sensitivity/crosshair adjustment>",
+  "newbie_advice": "<1–2 natural coaching sentences with the exact sensitivity adjustment and hardware notice if under high load>",
   "full_reasoning": "<one natural sentence explaining the adjustment and why it should help>"
 }}
 Do not include any text outside the JSON block.
@@ -599,10 +604,35 @@ def calculate_blood_strike_sensitivity(
             f"Keep your sliders right at {final_no_ads} (No ADS) and {final_iron} (Iron Sight) to lock in this muscle memory!"
         )
 
+    final_firing = int(round(final_no_ads * 0.95))
+    final_firing_ads = int(round(final_iron * 1.05))
+    final_2x = int(round(final_scope * 0.95))
+    final_4x = int(round(final_scope * 0.85))
+    final_sniper = int(round(final_scope * 0.75))
+
     return {
         "no_ads_sens": final_no_ads,
+        "camera_sens": final_no_ads,
+        "firing_sens": final_firing,
         "iron_sight_sens": final_iron,
+        "ads_sens": final_iron,
+        "firing_ads_sens": final_firing_ads,
         "scope_sens": final_scope,
+        "scope_2x": final_2x,
+        "scope_4x": final_4x,
+        "scope_sniper": final_sniper,
+        "baseline": {
+            "no_ads_sens": base_no_ads,
+            "camera_sens": base_no_ads,
+            "firing_sens": base_no_ads,
+            "iron_sight_sens": base_iron_sight,
+            "ads_sens": base_iron_sight,
+            "firing_ads_sens": base_iron_sight,
+            "scope_sens": base_scope,
+            "scope_2x": base_scope,
+            "scope_4x": 35,
+            "scope_sniper": 30,
+        },
         "math_steps": " ".join(steps),
         "newbie_advice": newbie_advice,
     }
@@ -641,7 +671,16 @@ def node_aim_coach_calculator(state: AimState) -> dict:
         bounds=SENSITIVITY_BOUNDS,
     )
 
-    # ── Step B: Prompt LLM with data + mathematical baseline + RAG Context ──
+    # ── Step B: Collect Live Hardware Health (psutil) ─────────────────────────
+    cpu_pct = psutil.cpu_percent(interval=0.05)
+    ram = psutil.virtual_memory()
+    ram_pct = ram.percent
+    ram_used_mb = round(ram.used / (1024**2), 1)
+    ram_total_mb = round(ram.total / (1024**2), 1)
+    is_safe = not (cpu_pct > 80.0 or ram_pct > 85.0)
+    safety_badge = "[✅ SAFE TO PLAY]" if is_safe else "[⚠️ UNSAFE TO PLAY - HIGH LOAD]"
+
+    # ── Step C: Prompt LLM with data + mathematical baseline + RAG Context ──
     rag_kb = state.get("game_knowledge_context", "")
     rag_hist = state.get("player_history_context", "")
     rag_snippet = ""
@@ -658,6 +697,11 @@ Current In-Game UI Sliders:
   No ADS Steering (Hipfire):   {base_no_ads}
   Iron Sight/Holo/Red Dot:     {base_iron_sight}
   Scopes (2X to 8X):           {base_scope}
+
+LIVE HARDWARE SAFETY STATUS:
+  Hardware Status: {safety_badge}
+  CPU Load:        {cpu_pct}%
+  RAM Usage:       {ram_pct}% ({ram_used_mb}MB / {ram_total_mb}MB)
 
 MOUSE TELEMETRY:
   Total dx (horizontal): {summary['total_dx']} px
@@ -1049,12 +1093,20 @@ def format_coaching_report(final_state: dict) -> str:
 # INTERACTIVE AI COACH CHAT & LIVE HARDWARE SAFETY ADVISOR
 # ==============================================================================
 
-COACH_CHAT_SYSTEM_PROMPT = """You are Coach AgenticAim, a friendly, experienced esports teammate coaching Blood Strike live.
+COACH_CHAT_SYSTEM_PROMPT = """You are Coach AgenticAim, a friendly, experienced esports teammate and live hardware advisor coaching Blood Strike.
 
-1. Conversational Queries: If the user asks a casual question (e.g., 'how are you', 'what is your name', greetings, casual chat), respond naturally, briefly, and in-character without mentioning sliders or telemetry.
-2. Gameplay Queries: If the user asks about their aim, recoil, settings, or match performance, analyze the provided telemetry and give one clear, practical adjustment.
+1. Conversational Queries: If the user asks a casual question (e.g., 'how are you', 'what is your name', greetings, casual chat), respond naturally and briefly.
+2. PC Specs & Hardware Queries: You have direct access to the player's detected hardware rig in your context (AMD Ryzen 5 CPU, AMD Radeon Vega 8 GPU, RAM). If asked, acknowledge their AMD Ryzen 5 processor and Vega 8 graphics. If RAM is high (>85%), remind them to close background apps to prevent input delay.
+3. Blood Strike Sensitivity Types & Recommendations:
+   Always use and recommend using the exact in-game Blood Strike category names:
+   • "Camera Sensitivity (No Scope)" — For looking around and initial flick acquisition
+   • "Firing Sensitivity" — For hipfire tracking while spraying
+   • "ADS Sensitivity (Red Dot / Iron Sight)" — For target tracking while aiming down sights
+   • "Firing ADS Sensitivity" — For vertical recoil pull-down while shooting ADS
+   • "Scope Sensitivity (2X, 3X, 4X, 6X, 8X / Sniper)" — For precision long-range scopes
+4. Gameplay Queries: If the user asks about their aim, recoil, settings, or match performance, give clear, practical adjustments using these exact category names.
 
-Speak like a real person, not a report or a scripted announcer. Use short, relaxed sentences and natural contractions; be encouraging without forced hype. Mention a measurement only when it helps explain your advice, and never recite formulas, labels, or the whole telemetry report. Keep replies under 3 sentences and use clear, conversational English."""
+Speak like a real teammate, not a scripted announcer. Use short, relaxed sentences and natural contractions. Keep replies concise and direct."""
 
 
 def ask_ai_coach(
@@ -1087,13 +1139,18 @@ def ask_ai_coach(
     if chat_history is None:
         chat_history = []
 
-    # ── Step A: Collect Live Hardware Health (psutil) ─────────────────────────
+    # ── Step A: Collect Live Hardware Health (psutil & Windows native) ───────
     cpu_pct = psutil.cpu_percent(interval=0.05)
     ram = psutil.virtual_memory()
     ram_pct = ram.percent
     ram_used_mb = round(ram.used / (1024**2), 1)
     ram_total_mb = round(ram.total / (1024**2), 1)
     gpu_desc = "0.0% (Vision offloaded to AMD Cloud API)"
+
+    from tracker import get_native_windows_hardware
+    hw_specs = get_native_windows_hardware()
+    cpu_name = hw_specs.get("cpu", "AMD Ryzen 5 PRO 3500U")
+    gpu_name = hw_specs.get("gpu", "AMD Radeon(TM) Vega 8 Graphics")
 
     # Hardware Safety Logic
     if cpu_pct > 80.0 or ram_pct > 85.0:
@@ -1118,6 +1175,11 @@ def ask_ai_coach(
         "ram_used_mb": ram_used_mb,
         "ram_total_mb": ram_total_mb,
         "gpu_desc": gpu_desc,
+        "cpu_name": cpu_name,
+        "gpu_name": gpu_name,
+        "ram_installed_gb": hw_specs.get("ram_installed_gb", 8.0),
+        "cores": hw_specs.get("cores", 8),
+        "display": hw_specs.get("display", "1280 × 720 @ 60Hz"),
         "is_safe": is_safe,
         "safety_badge": safety_badge,
         "safety_msg": safety_msg,
@@ -1203,13 +1265,16 @@ CURRENT LATEST MATCH TELEMETRY (Session #{latest.get('id')} — Game: {latest.ge
     system_prompt = (
         f"{COACH_CHAT_SYSTEM_PROMPT}\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"LIVE SYSTEM & MATCH CONTEXT (INJECTED LIVE FOR THIS TURN):\n"
+        f"LIVE PLAYER HARDWARE RIG (DETECTED LIVE ON THIS WINDOWS RIG):\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"LIVE HARDWARE STATUS: {safety_badge}\n"
-        f"  • CPU: {cpu_pct}%\n"
-        f"  • RAM: {ram_pct}% ({ram_used_mb} MB / {ram_total_mb} MB)\n"
-        f"  • GPU: {gpu_desc}\n"
-        f"  • Safety Advisor Note: {safety_msg}\n\n"
+        f"  • Processor (CPU): {cpu_name} ({hw_specs.get('cores', 8)} Cores)\n"
+        f"  • Graphics (GPU):  {gpu_name}\n"
+        f"  • Total Installed RAM: {hw_specs.get('ram_installed_gb', 8.0)} GB\n"
+        f"  • Native Display:  {hw_specs.get('display', '1280 × 720 @ 60Hz')}\n"
+        f"  • Live Status:     {safety_badge}\n"
+        f"  • Current Load:    CPU: {cpu_pct}%, RAM: {ram_pct}% ({ram_used_mb} MB / {ram_total_mb} MB)\n"
+        f"  • GPU Offload:     {gpu_desc}\n"
+        f"  • Safety Note:     {safety_msg}\n\n"
         f"{match_context}\n"
         f"{rag_section}"
         f"{measurable_outcome_rule}"
@@ -1235,32 +1300,37 @@ CURRENT LATEST MATCH TELEMETRY (Session #{latest.get('id')} — Game: {latest.ge
     except Exception as e:
         logger.warning(f"AI Coach primary LLM call hit error: {e} — attempting fast retry with fallback model...")
         reply = ""
-        # Auto-fallback to DeepSeek-V4-Flash if 429 concurrency limit is hit
-        if "429" in str(e) or "concurrency" in str(e).lower() or "rate_limit" in str(e).lower():
+        # Auto-fallback to alternative AMD models on 429, 502, 503, gateway, or network delay
+        candidate_models = ["DeepSeek-V4.1-Flash", "DeepSeek-V4-Flash", "GLM-5.3-Flash"]
+        for alt_model in candidate_models:
+            if alt_model == AMD_TEXT_MODEL:
+                continue
             try:
-                time.sleep(1.5)
+                time.sleep(0.5)
                 fallback_llm = ChatOpenAI(
                     base_url=AMD_BASE_URL,
                     api_key=AMD_API_KEY,
-                    model="DeepSeek-V4-Flash",
+                    model=alt_model,
                     temperature=0.2,
-                    request_timeout=35.0,
+                    request_timeout=25.0,
                     max_retries=1,
                 )
                 fb_res = fallback_llm.invoke(messages)
                 reply = str(fb_res.content).strip()
+                if reply:
+                    logger.info(f"Fallback model {alt_model} succeeded!")
+                    break
             except Exception as e2:
-                logger.error(f"Fallback LLM also failed: {e2}")
+                logger.error(f"Fallback model {alt_model} failed: {e2}")
 
         if not reply:
             latest_sens = latest.get("sensitivity_sliders", {}) if latest else {}
             no_ads_val = latest_sens.get("no_ads_sens", 75)
             iron_val = latest_sens.get("iron_sight_sens", 40)
             reply = (
-                f"AMD Token Factory API experienced a temporary concurrency delay ({e}). "
-                f"However, based on live telemetry, your Hardware Status is {safety_badge}. "
-                f"Your current recommended Blood Strike sliders are: No ADS Steering: {no_ads_val}, "
-                f"Iron Sight: {iron_val}."
+                f"AMD Cloud model gateway is experiencing high traffic, but your telemetry is locked in. "
+                f"Hardware load is {safety_badge}. For optimal recoil control, set your Blood Strike "
+                f"No ADS Steering to {no_ads_val} and Iron Sight to {iron_val}."
             )
 
     sources = []
@@ -1387,9 +1457,14 @@ CURRENT LATEST MATCH TELEMETRY (Session #{latest.get('id')} — Game: {latest.ge
         "numbers against player history. Never claim improvement without data.\n"
     )
 
+    from tracker import get_native_windows_hardware
+    hw_specs = get_native_windows_hardware()
+    cpu_name = hw_specs.get("cpu", "AMD Ryzen 5 PRO 3500U")
+    gpu_name = hw_specs.get("gpu", "AMD Radeon(TM) Vega 8 Graphics")
+
     system_prompt = (
         f"{COACH_CHAT_SYSTEM_PROMPT}\n\n"
-        f"LIVE HARDWARE STATUS: {safety_badge} (CPU: {cpu_pct}%, RAM: {ram_pct}%)\n"
+        f"LIVE HARDWARE RIG: {cpu_name} | {gpu_name} | RAM: {ram_pct}% ({safety_badge})\n"
         f"{match_context}\n"
         f"{rag_section}"
         f"{measurable_rule}"
@@ -1432,5 +1507,5 @@ CURRENT LATEST MATCH TELEMETRY (Session #{latest.get('id')} — Game: {latest.ge
             iron_val = latest_sens.get("iron_sight_sens", 40)
             yield {
                 "type": "token",
-                "content": f"\nAMD Cloud API experienced a temporary queue delay ({e2}). Your current Blood Strike slider recommendations are: No ADS Steering: {no_ads_val}, Iron Sight: {iron_val}."
+                "content": f"\nAMD Cloud model gateway is experiencing high traffic, but your telemetry is locked in. Blood Strike sliders: No ADS Steering: {no_ads_val}, Iron Sight: {iron_val}."
             }

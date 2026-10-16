@@ -116,7 +116,7 @@ function Hologram({ active }) {
   )
 }
 
-export default function CoachPanel({ session }) {
+export default function CoachPanel({ session, onCoachAdvise }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -222,6 +222,9 @@ export default function CoachPanel({ session }) {
       const r = await postChat(userMsg, history)
       setMessages((m) => [...m, { role: 'coach', text: r.reply, verified: r.is_rag_verified }])
       if (voiceEnabled) speakText(r.reply)
+      if (onCoachAdvise) {
+        onCoachAdvise(r.reply, r.latest_session)
+      }
     } catch (error) {
       setMessages((m) => [
         ...m,

@@ -34,11 +34,16 @@
   - Evaluates recoil kick, flick classification (over-flick, under-flick, tracking), and shot accuracy.
   - **5-Second Crash-Proof Fallback**: Prevents any hanging or crash if screen capture or vision endpoints experience network latency.
 
-- **🎛️ Blood Strike In-Game Slider Calibration**:
-  - Translates telemetry into exact in-game slider adjustments:
-    - **No ADS Steering (Hipfire)** (Baseline: 75)
-    - **Iron Sight / Holo / Red Dot** (Baseline: 40)
-    - **Scopes (2X to 8X)** (Baseline: 40)
+- **🎛️ Official 7 Blood Strike Sensitivity Sliders Calibration**:
+  - Translates telemetry into exact in-game slider adjustments with dynamic UI animations:
+    - **Camera Sensitivity** (Look around speed)
+    - **Firing Sensitivity** (Hipfire spray control)
+    - **ADS Sensitivity** (Aiming down sights)
+    - **Firing ADS Sensitivity** (Spray control while aiming down sights)
+    - **2× Scope Sensitivity** (Mid-range optics)
+    - **4× Scope Sensitivity** (Tactical scopes)
+    - **Sniper Scope Sensitivity** (Long-range precision)
+  - Whenever AI Coach recommends sensitivity in chat, sliders dynamically glide to recommended values!
 
 - **🔒 Safe-by-Design Anti-Cheat Compliance**:
   - Zero game memory hooking, zero DLL injection, zero full-game recording.

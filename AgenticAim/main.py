@@ -32,7 +32,8 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -46,7 +47,14 @@ if hasattr(sys.stderr, 'reconfigure'):
 # AgenticAim modules
 from config import API_HOST, API_PORT, GAME_CONFIG, get_game_benchmark
 from database import init_db, fetch_recent_sessions, fetch_session_by_id, get_latest_session
-from tracker import generate_mock_shot_event, get_active_game, ShotEvent, get_hardware_spec, get_live_system_impact
+from tracker import (
+    generate_mock_shot_event,
+    get_active_game,
+    ShotEvent,
+    get_hardware_spec,
+    get_live_system_impact,
+    get_native_windows_hardware,
+)
 from graph import build_graph, format_coaching_report, AimState, ask_ai_coach, ask_ai_coach_stream
 from rag import (
     init_qdrant_collections,
@@ -168,16 +176,39 @@ class AnalyzeResponse(BaseModel):
 # API ENDPOINTS
 # ==============================================================================
 
-# Path to Web Dashboard
-DASHBOARD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard.html")
+# Paths to Web Frontends
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "dist"))
+if not os.path.exists(FRONTEND_DIST):
+    FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "frontend", "dist"))
+
+DIST_INDEX_FILE = os.path.join(FRONTEND_DIST, "index.html") if os.path.exists(FRONTEND_DIST) else None
+DASHBOARD_FILE = os.path.join(BASE_DIR, "dashboard.html")
 _latest_client_hardware = {}
+
+# Mount React static assets if present
+if os.path.exists(FRONTEND_DIST):
+    assets_dir = os.path.join(FRONTEND_DIST, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+
+@app.get("/{filename}.png", include_in_schema=False)
+async def serve_frontend_png(filename: str):
+    """Serve root-level static images (coach avatars, telemetry images) from frontend/dist."""
+    if os.path.exists(FRONTEND_DIST):
+        img_path = os.path.join(FRONTEND_DIST, f"{filename}.png")
+        if os.path.exists(img_path):
+            return FileResponse(img_path)
+    raise HTTPException(status_code=404, detail="Image not found")
 
 
 @app.get("/", tags=["Dashboard & Health"])
 async def root(request: Request):
     """
     Main entry point:
-    - Returns high-tech Esports Web Dashboard with WebGL Judge Hardware Detection when accessed via browser.
+    - Serves modern React Esports Web Dashboard (frontend/dist) when accessed via browser.
+    - Falls back to dashboard.html if React build is not present.
     - Returns JSON status when accessed via API/JSON request.
     """
     accept = request.headers.get("accept", "")
@@ -188,6 +219,12 @@ async def root(request: Request):
             "model":  "AMD Token Factory (DeepSeek Vision + DeepSeek Text)",
         }
 
+    # 1. Prefer React modern frontend build
+    if DIST_INDEX_FILE and os.path.exists(DIST_INDEX_FILE):
+        with open(DIST_INDEX_FILE, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+
+    # 2. Fallback to classic dashboard.html
     if os.path.exists(DASHBOARD_FILE):
         with open(DASHBOARD_FILE, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read(), status_code=200)
@@ -209,62 +246,6 @@ async def health_check():
     }
 
 
-import psutil
-
-def get_native_windows_hardware():
-    """Query exact Windows OS and hardware specs directly from registry and kernel32."""
-    cpu = "AMD Ryzen 5 PRO 3500U w/ Radeon Vega Mobile Gfx"
-    gpu = "AMD Radeon(TM) Vega 8 Graphics"
-    ram_installed = 8.0
-    display_str = "1280 × 720 @ 60Hz"
-
-    try:
-        import winreg
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
-        val, _ = winreg.QueryValueEx(key, "ProcessorNameString")
-        cpu = val.strip()
-    except Exception:
-        pass
-
-    try:
-        import winreg
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000")
-        val, _ = winreg.QueryValueEx(key, "DriverDesc")
-        gpu = val.strip()
-    except Exception:
-        pass
-
-    try:
-        import ctypes
-        mem_kb = ctypes.c_ulonglong()
-        ctypes.windll.kernel32.GetPhysicallyInstalledSystemMemory(ctypes.byref(mem_kb))
-        ram_installed = round(mem_kb.value / (1024**2), 1)
-    except Exception:
-        pass
-
-    try:
-        import ctypes
-        user32 = ctypes.windll.user32
-        gdi32 = ctypes.windll.gdi32
-        hdc = user32.GetDC(0)
-        w = gdi32.GetDeviceCaps(hdc, 8)
-        h = gdi32.GetDeviceCaps(hdc, 10)
-        hz = gdi32.GetDeviceCaps(hdc, 116)
-        user32.ReleaseDC(0, hdc)
-        display_str = f"{w} × {h} @ {hz}Hz"
-    except Exception:
-        pass
-
-    ram_usable = round(psutil.virtual_memory().total / (1024**3), 1)
-
-    return {
-        "cpu": cpu,
-        "gpu": gpu,
-        "ram_installed_gb": ram_installed,
-        "ram_usable_gb": ram_usable,
-        "cores": psutil.cpu_count(logical=True),
-        "display": display_str,
-    }
 
 
 @app.get("/api/system-specs", tags=["AI Coach & Hardware"])
@@ -414,6 +395,7 @@ async def get_hardware_safety():
     """
     Live Hardware Safety Advisor endpoint.
     Returns live CPU %, RAM %, memory usage in MB, and whether it's safe to play.
+    Includes detected native Windows hardware (AMD Ryzen CPU & Radeon Vega GPU).
     """
     import psutil
     cpu_pct = psutil.cpu_percent(interval=0.05)
@@ -430,6 +412,8 @@ async def get_hardware_safety():
         f"High resource load (CPU: {cpu_pct}%, RAM: {ram_pct}%). Close heavy background apps before gaming!"
     )
 
+    hw_specs = get_native_windows_hardware()
+
     return {
         "cpu_pct": cpu_pct,
         "ram_pct": ram_pct,
@@ -437,6 +421,11 @@ async def get_hardware_safety():
         "ram_total_mb": ram_total_mb,
         "gpu_pct": 0.0,
         "gpu_desc": "0.0% (Vision offloaded to AMD Cloud API)",
+        "cpu_name": hw_specs.get("cpu", "AMD Ryzen 5 PRO 3500U"),
+        "gpu_name": hw_specs.get("gpu", "AMD Radeon(TM) Vega 8 Graphics"),
+        "ram_installed_gb": hw_specs.get("ram_installed_gb", 8.0),
+        "cores": hw_specs.get("cores", 8),
+        "display": hw_specs.get("display", "1280 × 720 @ 60Hz"),
         "is_safe_to_play": is_safe,
         "safety_badge": safety_badge,
         "safety_message": safety_msg,

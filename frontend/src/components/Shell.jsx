@@ -10,6 +10,9 @@ const NAV = [
 
 export function Header({ hw, online }) {
   const safe = hw.is_safe_to_play
+  const cpuShort = hw.cpu_name ? hw.cpu_name.replace('w/ Radeon Vega Mobile Gfx', '').replace('PRO', '').trim() : 'Ryzen 5 3500U'
+  const gpuShort = hw.gpu_name ? hw.gpu_name.replace('Graphics', '').replace('(TM)', '').trim() : 'Vega 8'
+
   return (
     <header className="flex h-[42px] shrink-0 items-center justify-between border-b border-line bg-bg2/80 px-3 backdrop-blur sm:px-5">
       <div className="flex items-center gap-2">
@@ -21,6 +24,11 @@ export function Header({ hw, online }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <div className="hidden md:flex items-center gap-1.5 rounded border border-rose/30 bg-rose/10 px-2.5 py-0.5 font-mono text-[9px] font-bold text-rose-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse" />
+          ⚡ {cpuShort.toUpperCase()} • {gpuShort.toUpperCase()}
+        </div>
+
         <div
           className={`flex items-center gap-1.5 rounded-md border px-2 py-1 font-head text-[10px] font-bold tracking-wide sm:px-3 ${
             safe ? 'glow-safe border-safe/70 bg-safe/10 text-safe' : 'glow-unsafe'
