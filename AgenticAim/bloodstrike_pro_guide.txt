@@ -1,0 +1,52 @@
+# Blood Strike Esports Pro Guide & Weapon Recoil Meta
+# Compiled for AgenticAim RAG Vector Knowledge Base
+
+[SECTION: KAG-6 ASSAULT RIFLE - S-TIER META]
+Weapon: KAG-6 Assault Rifle
+Role: S-Tier Mid-to-Long Range Dominance
+Recoil Pattern: KAG-6 kicks upward with slight right drift on the first 5 bullets. Vertical pull requires gentle down-pull (50-65 px/s).
+Optimal Pro Attachments:
+- Muzzle: CQB Muzzle Device (minimizes vertical kick and tightens hipfire spread)
+- Barrel: 16-inch Extended Barrel (boosts damage range, bullet velocity, and stabilization)
+- Underbarrel: Forward Universal Grip (eliminates horizontal drift with zero mobility penalty)
+- Magazine: 40-Round Explosive Mag (multi-kill sustainability)
+- Optic: Romeo4T Red Dot Sight (uncluttered peripheral sightline)
+Drill: Fire 5-round bursts at 25m, pulling down 55 px/s. Let horizontal grip neutralize side sway.
+
+[SECTION: AK-47 ASSAULT RIFLE - HIGH DAMAGE META]
+Weapon: AK-47 Assault Rifle
+Role: S-Tier Heavy Damage & Punishing Front-Loaded TTK
+Recoil Pattern: Strong vertical kick (+12-16px per shot) with sharp upward jump in initial 4 bullets.
+Pro Tuning & Attachments: Focus 100% on Recoil Control & Damage Range. Heavy-stability stock, vertical compensator, and angled underbarrel.
+Recoil Technique: Never spray full auto past 20 meters. Use rhythmic 4-5 bullet burst fire. On PC, firmly pull mouse downward 85-100 px/s during initial spray ramp.
+Drill: Wall spray calibration at 20m. Compensate first 4 bullets with quick wrist snap down.
+
+[SECTION: M4A1 ASSAULT RIFLE - BALANCED TRACKING]
+Weapon: M4A1 Assault Rifle
+Role: Laser-Consistent Precision & Newbie-Friendly Tracking
+Recoil Pattern: Virtually zero horizontal deviation; purely vertical linear upward drift.
+Pro Tuning: Prioritize ADS Speed and Recoil Stabilization (Tactical Barrel, Stable Stock, standard Compensator).
+Recoil Technique: Smooth, continuous downward tracking without abrupt adjustments. Ideal for players struggling with over-flick or errant horizontal drift.
+Drill: Track strafing bots at 30m maintaining crosshair centered on upper chest.
+
+[SECTION: INP-9 SMG - CLOSE-QUARTERS LASER]
+Weapon: INP-9 Submachine Gun
+Role: Top-Tier Close Quarters Combat (CQC) Laser Beam
+Recoil Pattern: Highest native recoil stability in SMG category. Extremely tight bullet grouping under 15m.
+Pro Tuning: Mobility and ADS strafe speed (Lightweight Stock, Tactical Suppressor, Fast-Reload 45-Round Drum).
+Movement & Aim Technique: Mirror enemy left-right movement with strafe keys (A/D). Strafe-aiming sticks crosshair to target without over-flicking mouse.
+Drill: Slide-cancel corner entry with hipfire transition to ADS within 10m.
+
+[SECTION: BLOOD STRIKE PC SENSITIVITY CALIBRATION]
+Mouse DPI: Standard competitive range is 800 DPI to 1600 DPI (1000Hz polling rate).
+In-Game Slider Benchmarks:
+- No ADS Steering (Hipfire / Camera): Baseline 75. Reduce to 60-65 for over-flickers (dx > 80px). Increase to 80-85 for under-trackers.
+- Iron Sight / Holo / Red Dot: Baseline 40. Raise to 45-50 if downward pull is under-compensated (<40px). Lower to 35 if over-pulling.
+- Scopes (2X to 8X): Baseline 40. Never exceed 50 for steady target acquisition.
+30-Centimeter Rule: A full 360-degree hipfire turn should require 25 to 30 centimeters of mousepad travel.
+
+[SECTION: PRO MOVEMENT & POSITIONING STRATEGY]
+Mechanics: Slide-jumping, ziplining, and crouch-spraying.
+Crouch-to-Laser: Dropping into a crouch mid-gunfight instantly tightens bullet spread cone and reduces vertical recoil penalty by 25%.
+Corner Pre-Aiming: Always pre-aim at head/neck level at corner seams rather than centering on open doors.
+Input Latency Rule: System RAM load exceeding 85% introduces 10-15ms input delay, ruining mouse tracking precision. Keep CPU < 75% and RAM < 80% for tournament performance.

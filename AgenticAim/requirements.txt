@@ -1,0 +1,49 @@
+# AgenticAim - Requirements
+# AMD Developer Hackathon | AI-Powered Esports Aim Coach
+
+# --- Web Framework ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# --- LangChain / LangGraph Ecosystem ---
+# Use unpinned patch versions so pip resolves compatible langchain-core automatically
+langchain>=0.3.7
+langchain-openai>=0.3.0
+langchain-community>=0.3.7
+langgraph>=0.2.55
+
+# --- Database ---
+aiosqlite>=0.20.0
+
+# --- Input Tracking & Window Detection ---
+pynput>=1.7.7
+pygetwindow>=0.0.9
+psutil>=6.1.0
+
+# --- Screen Capture & Computer Vision ---
+mss>=9.0.2
+opencv-python>=4.10.0
+
+# --- Utilities ---
+python-dotenv>=1.0.1
+Pillow>=11.0.0
+requests>=2.32.0
+duckduckgo-search>=6.3.7
+pydantic>=2.9.0
+python-multipart>=0.0.17
+ddgs>=0.1.0
+
+# --- Live Hardware & System Monitoring ---
+py-cpuinfo>=9.0.0
+gputil>=1.4.0
+
+# --- Hybrid RAG + Adaptive Personal Memory ---
+qdrant-client>=1.9.0          # Qdrant vector DB client (Cloud or local)
+# openai>=1.30.0 already pulled as transitive dep of langchain-openai
+
+# --- Real-Time Neural Voice AI Esports Coach ---
+edge-tts>=7.0.0
+SpeechRecognition>=3.10.0
+pygame>=2.6.0
+PyAudio>=0.2.14
+
