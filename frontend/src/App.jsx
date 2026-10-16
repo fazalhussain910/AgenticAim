@@ -6,6 +6,10 @@ import MatchPanel from './components/MatchPanel.jsx'
 import CalibrationPanel from './components/CalibrationPanel.jsx'
 import CoachPanel from './components/CoachPanel.jsx'
 import RagPanel from './components/RagPanel.jsx'
+import VoiceCoachView from './components/VoiceCoachView.jsx'
+import HistoryView from './components/HistoryView.jsx'
+import QdrantView from './components/QdrantView.jsx'
+import SettingsView from './components/SettingsView.jsx'
 import { useHardware, useSession, useRag, postAnalyze } from './lib/api.js'
 
 function parseSensFromText(text) {
@@ -96,22 +100,48 @@ export default function App() {
       <div className="flex min-h-0 flex-1">
         <Sidebar active={nav} onChange={setNav} />
         <main className="min-w-0 flex-1 overflow-auto p-2.5 sm:p-3.5 flex flex-col">
-          <div className="dashboard-grid mx-auto grid w-full flex-1 max-w-[1600px] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:ml-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-[minmax(136px,0.95fr)_minmax(168px,1.2fr)_minmax(146px,1.05fr)] lg:gap-2.5">
-            <div className="min-h-0 min-w-0 lg:col-start-1 lg:row-start-1"><HardwarePanel hw={hw} /></div>
-            <div className="min-h-0 min-w-0 lg:col-start-2 lg:row-start-1"><TelemetryPanel hw={hw} /></div>
-            <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
-              <CoachPanel session={session} onCoachAdvise={handleCoachAdvise} />
-            </div>
+          {nav === 'dashboard' && (
+            <div className="dashboard-grid mx-auto grid w-full flex-1 max-w-[1600px] grid-cols-1 gap-2.5 sm:grid-cols-2 lg:ml-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)] lg:grid-rows-[minmax(136px,0.95fr)_minmax(168px,1.2fr)_minmax(146px,1.05fr)] lg:gap-2.5">
+              <div className="min-h-0 min-w-0 lg:col-start-1 lg:row-start-1"><HardwarePanel hw={hw} /></div>
+              <div className="min-h-0 min-w-0 lg:col-start-2 lg:row-start-1"><TelemetryPanel hw={hw} /></div>
+              <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-span-2 lg:row-start-1">
+                <CoachPanel session={session} onCoachAdvise={handleCoachAdvise} />
+              </div>
 
-            <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-2">
-              <MatchPanel session={session} onAnalyze={analyze} analyzing={analyzing} />
-            </div>
+              <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-2">
+                <MatchPanel session={session} onAnalyze={analyze} analyzing={analyzing} />
+              </div>
 
-            <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-3">
-              <CalibrationPanel session={session} coachOverrides={coachOverrides} />
+              <div className="min-h-0 min-w-0 lg:col-span-2 lg:col-start-1 lg:row-start-3">
+                <CalibrationPanel session={session} coachOverrides={coachOverrides} />
+              </div>
+              <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-start-3"><RagPanel rag={rag} /></div>
             </div>
-            <div className="min-h-0 min-w-0 lg:col-start-3 lg:row-start-3"><RagPanel rag={rag} /></div>
-          </div>
+          )}
+
+          {nav === 'voice' && (
+            <div className="mx-auto flex-1 w-full max-w-[1600px]">
+              <VoiceCoachView session={session} onCoachAdvise={handleCoachAdvise} />
+            </div>
+          )}
+
+          {nav === 'history' && (
+            <div className="mx-auto flex-1 w-full max-w-[1600px]">
+              <HistoryView />
+            </div>
+          )}
+
+          {nav === 'qdrant' && (
+            <div className="mx-auto flex-1 w-full max-w-[1600px]">
+              <QdrantView rag={rag} />
+            </div>
+          )}
+
+          {nav === 'settings' && (
+            <div className="mx-auto flex-1 w-full max-w-[1600px]">
+              <SettingsView hw={hw} />
+            </div>
+          )}
 
           {analysisError && (
             <p role="alert" className="mt-2 text-right text-[9px] text-red-300">

@@ -74,8 +74,8 @@ import pygame.mixer  # type: ignore
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-COACH_VOICE: str = "en-US-ChristopherNeural"  # Professional, confident male coach
-COACH_RATE: str  = "+15%"                     # Fast, urgent esports comms tempo
+COACH_VOICE: str = "en-US-AriaNeural"         # Crisp, natural professional female esports coach
+COACH_RATE: str  = "+12%"                     # Fast, natural esports comms tempo
 TEMP_AUDIO_DIR: str = tempfile.gettempdir()
 
 

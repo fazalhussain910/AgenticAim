@@ -95,6 +95,40 @@ export async function postAnalyze() {
   return r.json()
 }
 
+export async function postVoiceListen() {
+  const r = await fetch(`${API_BASE}/api/voice/listen`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!r.ok) throw new Error(`Voice listen request failed (${r.status})`)
+  return r.json()
+}
+
+export async function postVoiceTts(text, voice = 'en-US-AriaNeural') {
+  const r = await fetch(`${API_BASE}/api/voice/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice }),
+  })
+  if (!r.ok) throw new Error(`TTS synthesis failed (${r.status})`)
+  return r.json()
+}
+
+export async function fetchHistory(limit = 25) {
+  const r = await fetch(`${API_BASE}/history?limit=${limit}`)
+  if (!r.ok) throw new Error(`Fetch history failed (${r.status})`)
+  return r.json()
+}
+
+export async function postSeedRag() {
+  const r = await fetch(`${API_BASE}/api/rag/seed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!r.ok) throw new Error(`RAG seed failed (${r.status})`)
+  return r.json()
+}
+
 // ---------- Normalisers: tolerate partial backend responses ----------
 const normHardware = (d) => ({
   ...MOCK.hardware,

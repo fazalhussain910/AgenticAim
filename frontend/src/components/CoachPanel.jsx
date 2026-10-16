@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Send } from 'lucide-react'
+import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react'
 import Panel from './Panel.jsx'
-import { postChat } from '../lib/api.js'
+import { postChat, postVoiceListen, postVoiceTts } from '../lib/api.js'
 
 function Hologram({ active }) {
   const canvasRef = useRef(null)
@@ -133,27 +133,51 @@ export default function CoachPanel({ session, onCoachAdvise }) {
   const lastCoach =
     [...messages].reverse().find((m) => m.role === 'coach')?.text ?? defaultCoach
 
-  const speakText = (content) => {
-    if (!speechSupported || !content) return
+  const speakText = async (content) => {
+    if (!content) return
+
+    // 1. Prioritize Microsoft Edge Neural TTS female voice (en-US-AriaNeural) via backend
+    try {
+      setSpeaking(true)
+      const res = await postVoiceTts(content, 'en-US-AriaNeural')
+      if (res?.status === 'success' && res.audio_data) {
+        const audio = new Audio(res.audio_data)
+        audio.onended = () => setSpeaking(false)
+        audio.onerror = () => setSpeaking(false)
+        await audio.play()
+        return
+      }
+    } catch {
+      // Fallback to browser Web Speech API
+    }
+
+    // 2. Fallback: Browser Web Speech API strictly prioritizing female voices
+    if (!speechSupported) {
+      setSpeaking(false)
+      return
+    }
     const utterance = new SpeechSynthesisUtterance(content)
     const voices = window.speechSynthesis.getVoices()
-    const naturalVoice = voices.find(
-      (voice) =>
-        /^en-US/i.test(voice.lang) &&
-        /(natural|aria|jenny|zira|samantha|google us english|christopher)/i.test(voice.name),
-    )
-    const englishVoice =
-      naturalVoice || voices.find((voice) => /^en-US/i.test(voice.lang)) ||
-      voices.find((voice) => /^en/i.test(voice.lang))
 
-    if (englishVoice) {
-      utterance.voice = englishVoice
-      utterance.lang = englishVoice.lang
+    // Strictly select natural female voices
+    const femaleVoice =
+      voices.find(
+        (v) =>
+          /^en/i.test(v.lang) &&
+          /(aria|jenny|zira|samantha|female|karen|susan|victoria|hazel)/i.test(v.name),
+      ) ||
+      voices.find((v) => /(aria|jenny|zira|samantha|female)/i.test(v.name)) ||
+      voices.find((v) => /^en-US/i.test(v.lang) && !/(david|mark|george|christopher|male)/i.test(v.name)) ||
+      voices.find((v) => /^en/i.test(v.lang))
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice
+      utterance.lang = femaleVoice.lang
     } else {
-      utterance.lang = navigator.language || 'en-US'
+      utterance.lang = 'en-US'
     }
-    utterance.rate = 0.94
-    utterance.pitch = 1.02
+    utterance.rate = 0.98
+    utterance.pitch = 1.08
 
     utterance.onstart = () => setSpeaking(true)
     utterance.onend = () => setSpeaking(false)
@@ -166,21 +190,25 @@ export default function CoachPanel({ session, onCoachAdvise }) {
   useEffect(() => {
     const SpeechRec = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
     if (SpeechRec) {
-      const rec = new SpeechRec()
-      rec.continuous = false
-      rec.interimResults = false
-      rec.lang = navigator.language || 'en-US'
+      try {
+        const rec = new SpeechRec()
+        rec.continuous = false
+        rec.interimResults = false
+        rec.lang = 'en-US'
 
-      rec.onstart = () => setListening(true)
-      rec.onend = () => setListening(false)
-      rec.onerror = () => setListening(false)
-      rec.onresult = (event) => {
-        const spoken = event.results[0][0].transcript
-        if (spoken) {
-          executeChat(spoken)
+        rec.onstart = () => setListening(true)
+        rec.onend = () => setListening(false)
+        rec.onerror = () => setListening(false)
+        rec.onresult = (event) => {
+          const spoken = event.results?.[0]?.[0]?.transcript
+          if (spoken) {
+            executeChat(spoken)
+          }
         }
+        recognitionRef.current = rec
+      } catch {
+        recognitionRef.current = null
       }
-      recognitionRef.current = rec
     }
   }, [])
 
@@ -191,20 +219,45 @@ export default function CoachPanel({ session, onCoachAdvise }) {
     [speechSupported],
   )
 
-  const toggleMic = () => {
-    if (recognitionRef.current) {
-      if (listening) {
-        recognitionRef.current.stop()
-      } else {
-        try {
-          recognitionRef.current.start()
-        } catch {
-          // ignore already started
-        }
+  const toggleMic = async () => {
+    if (listening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop() } catch {}
       }
-    } else {
-      // Toggle voice output fallback
-      setVoiceEnabled((v) => !v)
+      setListening(false)
+      return
+    }
+
+    setListening(true)
+
+    // Strategy A: If browser SpeechRecognition is active, trigger it
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start()
+        return
+      } catch {
+        // Fall through to backend native mic
+      }
+    }
+
+    // Strategy B: Native Desktop App / Backend Microphone Hook
+    try {
+      const res = await postVoiceListen()
+      if (res?.status === 'success' && res.transcript) {
+        executeChat(res.transcript)
+      } else if (res?.message) {
+        setMessages((m) => [
+          ...m,
+          { role: 'coach', text: `🎙️ ${res.message}` },
+        ])
+      }
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: 'coach', text: '🎙️ Mic active: Please speak clearly into your headset mic.' },
+      ])
+    } finally {
+      setListening(false)
     }
   }
 

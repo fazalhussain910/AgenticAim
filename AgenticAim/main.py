@@ -463,6 +463,68 @@ async def chat_with_coach(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/voice/listen", tags=["AI Coach & Voice"])
+async def listen_microphone_endpoint():
+    """
+    Native system microphone listener for desktop app and browser comms.
+    Captures audio from player headset/mic and transcribes via Google Speech Recognition.
+    """
+    def _listen():
+        try:
+            import speech_recognition as sr
+            r = sr.Recognizer()
+            r.energy_threshold = 280
+            r.dynamic_energy_threshold = True
+            with sr.Microphone() as source:
+                r.adjust_for_ambient_noise(source, duration=0.4)
+                audio = r.listen(source, timeout=4.5, phrase_time_limit=6.5)
+                transcript = r.recognize_google(audio)
+                return {"status": "success", "transcript": transcript.strip()}
+        except Exception as e:
+            err_name = type(e).__name__
+            logger.info(f"Microphone listen status: {err_name} — {e}")
+            return {
+                "status": "error",
+                "transcript": "",
+                "message": "No voice detected. Please speak into your headset mic and try again.",
+            }
+
+    return await asyncio.to_thread(_listen)
+
+
+@app.post("/api/voice/tts", tags=["AI Coach & Voice"])
+async def voice_tts_endpoint(data: dict):
+    """
+    Synthesizes crisp, natural female neural voice audio via Microsoft Edge TTS (en-US-AriaNeural).
+    Returns base64 MP3 data URI for instant lag-free client playback.
+    """
+    import base64
+    import edge_tts
+
+    text = data.get("text", "")
+    voice = data.get("voice", "en-US-AriaNeural")  # High-quality natural female coach
+    if not text:
+        return {"status": "error", "message": "No text provided"}
+
+    try:
+        communicate = edge_tts.Communicate(text[:380], voice=voice, rate="+10%")
+        audio_bytes = bytearray()
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_bytes.extend(chunk["data"])
+
+        b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+        return {
+            "status": "success",
+            "voice": voice,
+            "audio_data": f"data:audio/mp3;base64,{b64_audio}",
+        }
+    except Exception as e:
+        logger.warning(f"Edge TTS synthesis error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+
 @app.get("/api/rag/status", tags=["Hybrid RAG & Memory"])
 async def get_rag_status():
     """
