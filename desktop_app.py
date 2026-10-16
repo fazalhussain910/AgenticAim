@@ -29,6 +29,8 @@ else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 AGENTIC_DIR = os.path.join(BASE_DIR, "AgenticAim")
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 if os.path.exists(AGENTIC_DIR) and AGENTIC_DIR not in sys.path:
     sys.path.insert(0, AGENTIC_DIR)
 
