@@ -187,31 +187,6 @@ export default function CoachPanel({ session, onCoachAdvise }) {
     window.speechSynthesis.speak(utterance)
   }
 
-  useEffect(() => {
-    const SpeechRec = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
-    if (SpeechRec) {
-      try {
-        const rec = new SpeechRec()
-        rec.continuous = false
-        rec.interimResults = false
-        rec.lang = 'en-US'
-
-        rec.onstart = () => setListening(true)
-        rec.onend = () => setListening(false)
-        rec.onerror = () => setListening(false)
-        rec.onresult = (event) => {
-          const spoken = event.results?.[0]?.[0]?.transcript
-          if (spoken) {
-            executeChat(spoken)
-          }
-        }
-        recognitionRef.current = rec
-      } catch {
-        recognitionRef.current = null
-      }
-    }
-  }, [])
-
   useEffect(
     () => () => {
       if (speechSupported) window.speechSynthesis.cancel()
@@ -221,26 +196,11 @@ export default function CoachPanel({ session, onCoachAdvise }) {
 
   const toggleMic = async () => {
     if (listening) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop() } catch {}
-      }
       setListening(false)
       return
     }
 
     setListening(true)
-
-    // Strategy A: If browser SpeechRecognition is active, trigger it
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.start()
-        return
-      } catch {
-        // Fall through to backend native mic
-      }
-    }
-
-    // Strategy B: Native Desktop App / Backend Microphone Hook
     try {
       const res = await postVoiceListen()
       if (res?.status === 'success' && res.transcript) {
@@ -254,7 +214,7 @@ export default function CoachPanel({ session, onCoachAdvise }) {
     } catch {
       setMessages((m) => [
         ...m,
-        { role: 'coach', text: '🎙️ Mic active: Please speak clearly into your headset mic.' },
+        { role: 'coach', text: '🎙️ Speak clearly into your microphone and try again.' },
       ])
     } finally {
       setListening(false)

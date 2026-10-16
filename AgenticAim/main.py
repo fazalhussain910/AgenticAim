@@ -476,8 +476,8 @@ async def listen_microphone_endpoint():
             r.energy_threshold = 280
             r.dynamic_energy_threshold = True
             with sr.Microphone() as source:
-                r.adjust_for_ambient_noise(source, duration=0.4)
-                audio = r.listen(source, timeout=4.5, phrase_time_limit=6.5)
+                r.adjust_for_ambient_noise(source, duration=0.2)
+                audio = r.listen(source, timeout=6.0, phrase_time_limit=8.0)
                 transcript = r.recognize_google(audio)
                 return {"status": "success", "transcript": transcript.strip()}
         except Exception as e:
