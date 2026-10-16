@@ -40,7 +40,11 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 import uvicorn
 import webview
-from main import app
+
+try:
+    from AgenticAim.main import app
+except ImportError:
+    from main import app
 
 SERVER_HOST = "127.0.0.1"
 
