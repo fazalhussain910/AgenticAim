@@ -46,7 +46,8 @@ import webview
 try:
     from AgenticAim.main import app
 except ImportError:
-    from main import app
+    import importlib
+    app = getattr(importlib.import_module("main"), "app")
 
 SERVER_HOST = "127.0.0.1"
 
