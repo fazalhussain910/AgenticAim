@@ -12,12 +12,15 @@ export default function HistoryView() {
     setLoading(true)
     try {
       const data = await fetchHistory(50)
-      setHistory(data || [])
-      if (data && data.length > 0 && !selectedSession) {
-        setSelectedSession(data[0])
+      const list = Array.isArray(data)
+        ? data
+        : (data?.sessions && Array.isArray(data.sessions) ? data.sessions : [])
+      setHistory(list)
+      if (list.length > 0) {
+        setSelectedSession((prev) => prev || list[0])
       }
     } catch {
-      // ignore
+      setHistory([])
     } finally {
       setLoading(false)
     }
@@ -74,14 +77,14 @@ export default function HistoryView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40 text-slate-200">
-                  {history.length === 0 ? (
+                  {!Array.isArray(history) || history.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="p-4 text-center text-slate-500">
                         {loading ? 'Loading telemetry database...' : 'No aim sessions recorded yet. Run an analysis on the dashboard!'}
                       </td>
                     </tr>
                   ) : (
-                    history.map((s) => {
+                    (Array.isArray(history) ? history : []).map((s) => {
                       const isSel = selectedSession?.id === s.id
                       const t = s.telemetry || {}
                       const v = s.vision_analysis || {}
