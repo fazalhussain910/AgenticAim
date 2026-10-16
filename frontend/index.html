@@ -1,15 +1,33 @@
+<!-- Standard HTML5 document type declaration -->
 <!doctype html>
+<!-- Root HTML tag specifying English as the document language -->
 <html lang="en">
   <head>
+    <!-- Sets character encoding to UTF-8 to support all modern text characters and symbols -->
     <meta charset="UTF-8" />
+
+    <!-- Ensures proper responsive scaling and viewport width across mobile and desktop devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Title displayed in the browser tab and search engine results -->
     <title>AgenticAim — AI Esports Aim Coach</title>
+
+    <!-- Performance optimization: Preconnect to Google Fonts servers to reduce connection latency -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Custom typography used in the dashboard:
+         - Inter: General UI and reading body text
+         - JetBrains Mono: Monospace telemetry, code snippets, and numeric stats
+         - Rajdhani: Cyberpunk/gaming futuristic headings and panel titles -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <!-- Root DOM container where the React application attaches and mounts the entire UI -->
     <div id="root"></div>
+
+    <!-- Main JavaScript/JSX entry point loaded as an ES module by Vite to bootstrap the app -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
