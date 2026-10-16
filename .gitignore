@@ -1,0 +1,31 @@
+# Virtual Environments
+venv/
+AgenticAim/venv/
+.venv/
+env/
+
+# Python cache & logs
+__pycache__/
+*/__pycache__/
+AgenticAim/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+AgenticAim/*.log
+
+# Database files
+*.db
+*.sqlite3
+AgenticAim/agenticaim.db
+
+# Environment variables & secrets
+.env
+AgenticAim/.env
+
+# Node modules & build artifacts
+node_modules/
+frontend/node_modules/
+dist/
+build/
+.DS_Store
