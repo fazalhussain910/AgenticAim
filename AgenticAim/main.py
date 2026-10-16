@@ -178,9 +178,15 @@ class AnalyzeResponse(BaseModel):
 
 # Paths to Web Frontends
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "dist"))
-if not os.path.exists(FRONTEND_DIST):
-    FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "frontend", "dist"))
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    meipass = getattr(sys, "_MEIPASS")
+    FRONTEND_DIST = os.path.join(meipass, "frontend", "dist")
+    if not os.path.exists(FRONTEND_DIST):
+        FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "dist"))
+else:
+    FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend", "dist"))
+    if not os.path.exists(FRONTEND_DIST):
+        FRONTEND_DIST = os.path.abspath(os.path.join(BASE_DIR, "frontend", "dist"))
 
 DIST_INDEX_FILE = os.path.join(FRONTEND_DIST, "index.html") if os.path.exists(FRONTEND_DIST) else None
 DASHBOARD_FILE = os.path.join(BASE_DIR, "dashboard.html")
