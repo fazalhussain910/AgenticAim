@@ -28,6 +28,7 @@ node_modules/
 frontend/node_modules/
 /dist/
 build/
+*.zip
 .vscode/
 .DS_Store
 

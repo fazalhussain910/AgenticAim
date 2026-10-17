@@ -66,6 +66,7 @@ def main():
         "--hidden-import=langgraph",
         "--hidden-import=langchain_core",
         "--hidden-import=langchain_openai",
+        "--hidden-import=ormsgpack",
         "--noconfirm",
         "desktop_app.py",
     ]
@@ -79,9 +80,32 @@ def main():
     print("    " + " ".join(pyinstaller_args[:5]) + " ...")
     subprocess.run(pyinstaller_args, cwd=BASE_DIR, check=True)
 
+    dist_app_dir = os.path.join(BASE_DIR, "dist", "AgenticAim")
+    zip_dest = os.path.join(BASE_DIR, "AgenticAim_v1.0_Windows.zip")
+
+    print("[*] Packaging clean standalone ZIP (preserving base_library.zip)...")
+    import zipfile
+    temp_zip = zip_dest + ".tmp"
+    if os.path.exists(temp_zip):
+        os.remove(temp_zip)
+
+    file_count = 0
+    with zipfile.ZipFile(temp_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for root, dirs, files in os.walk(dist_app_dir):
+            for f in files:
+                full_path = os.path.join(root, f)
+                arcname = os.path.relpath(full_path, dist_app_dir)
+                z.write(full_path, arcname)
+                file_count += 1
+
+    if os.path.exists(zip_dest):
+        os.remove(zip_dest)
+    os.rename(temp_zip, zip_dest)
+
     print("\n" + "=" * 65)
-    print("  [SUCCESS] Executable built successfully!")
-    print(f"  Path: {os.path.join(BASE_DIR, 'dist', 'AgenticAim', 'AgenticAim.exe')}")
+    print("  [SUCCESS] Executable built & packaged successfully!")
+    print(f"  App Folder: {dist_app_dir}")
+    print(f"  Release Zip: {zip_dest} ({file_count} files, {os.path.getsize(zip_dest) / (1024*1024):.1f} MB)")
     print("=" * 65)
 
 
